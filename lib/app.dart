@@ -13,6 +13,10 @@ import 'features/pairing/sas_screen.dart';
 import 'features/pairing/scanner_screen.dart';
 import 'features/sessions/sessions_screen.dart';
 import 'features/sessions/workspaces_screen.dart';
+import 'features/agents/agent_usage_screen.dart';
+import 'features/project/project_screen.dart';
+import 'features/terminal/terminal_screen.dart';
+import 'features/terminal/terminals_screen.dart';
 
 /// Bridges the auth provider to go_router's refresh.
 class _AuthRefresh extends ChangeNotifier {
@@ -62,6 +66,35 @@ final routerProvider = Provider<GoRouter>((ref) {
                   workspaceId: s.pathParameters['wid']!,
                   workspaceName: s.uri.queryParameters['name'] ?? 'Project',
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'p',
+                    builder: (_, s) => ProjectScreen(
+                      desktopId: s.pathParameters['did']!,
+                      workspaceId: s.pathParameters['wid']!,
+                      workspaceName: s.uri.queryParameters['name'] ?? 'Project',
+                      initialTab: s.uri.queryParameters['tab'],
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'usage',
+                builder: (_, s) => AgentUsageScreen(desktopId: s.pathParameters['did']!),
+              ),
+              GoRoute(
+                path: 't',
+                builder: (_, s) => TerminalsScreen(desktopId: s.pathParameters['did']!),
+                routes: [
+                  GoRoute(
+                    path: ':tid',
+                    builder: (_, s) => TerminalScreen(
+                      desktopId: s.pathParameters['did']!,
+                      terminalId: s.pathParameters['tid']!,
+                      initialTitle: s.uri.queryParameters['title'],
+                    ),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 's/:sid',

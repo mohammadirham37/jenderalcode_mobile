@@ -1,10 +1,15 @@
-/// Build-time configuration from `--dart-define`. No hosts or client ids are
-/// stored in the source tree.
+/// Build-time configuration from `--dart-define`. No client ids are stored in
+/// the source tree; the relay is the official one (docs/protocol.md §0).
 class AppConfig {
   AppConfig._();
 
-  /// Base URL of the relay, e.g. `http://10.0.2.2:8080` on the emulator.
-  static const String relayUrl = String.fromEnvironment('RELAY_URL');
+  /// The official relay. Desktop and phone both use it; users cannot change it.
+  static const String officialRelay = 'https://backendcode.jenderalcorp.com';
+
+  /// Base URL of the relay. Defaults to [officialRelay]; local testing can
+  /// override it with `--dart-define=RELAY_URL=http://10.0.2.2:8080`.
+  static const String relayUrl =
+      String.fromEnvironment('RELAY_URL', defaultValue: officialRelay);
 
   /// Google OAuth *web* client id; the relay checks the ID token's `aud`.
   static const String googleServerClientId =

@@ -20,6 +20,9 @@ class ChatState {
     this.costEstimate,
     this.deciding = const {},
     this.sending = false,
+    this.settingPolicy = false,
+    this.usage,
+    this.updatingSession = false,
   });
 
   final bool loading;
@@ -46,6 +49,15 @@ class ChatState {
   final Set<String> deciding;
   final bool sending;
 
+  /// A `session.set_policy` is in flight.
+  final bool settingPolicy;
+
+  /// `session.usage`: [SessionUsage.lastInput] is the context fill.
+  final SessionUsage? usage;
+
+  /// A `session.set_agent`/`set_model` is in flight.
+  final bool updatingSession;
+
   List<Approval> get pendingApprovals =>
       [for (final a in approvals.values) if (a.isPending) a];
 
@@ -65,6 +77,9 @@ class ChatState {
     Object? costEstimate = _keep,
     Set<String>? deciding,
     bool? sending,
+    bool? settingPolicy,
+    SessionUsage? usage,
+    bool? updatingSession,
   }) =>
       ChatState(
         loading: loading ?? this.loading,
@@ -83,6 +98,9 @@ class ChatState {
             costEstimate == _keep ? this.costEstimate : costEstimate as double?,
         deciding: deciding ?? this.deciding,
         sending: sending ?? this.sending,
+        settingPolicy: settingPolicy ?? this.settingPolicy,
+        usage: usage ?? this.usage,
+        updatingSession: updatingSession ?? this.updatingSession,
       );
 
   /// Replaces everything with a `session.history` result.

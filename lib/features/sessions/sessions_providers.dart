@@ -4,6 +4,7 @@ import '../../core/config.dart';
 import '../../core/providers.dart';
 import '../../core/rpc/models.dart';
 import '../../core/rpc/rpc_client.dart';
+import '../desktops/capabilities.dart';
 
 RpcClient rpcFor(Ref ref, String desktopId) {
   final hub = ref.watch(hubProvider);
@@ -24,6 +25,9 @@ final desktopOverviewProvider =
   final rpc = rpcFor(ref, desktopId);
   final hello = HelloResult.fromJson(
       await rpc.call('hello', {'app_version': AppConfig.appVersion}));
+  if (ref.mounted) {
+    ref.read(capabilitiesProvider(desktopId).notifier).set(hello.capabilities);
+  }
   final ws = Workspace.listFrom((await rpc.call('workspaces.list'))['workspaces'])
     ..sort((a, b) => b.lastOpenedAt.compareTo(a.lastOpenedAt));
   return DesktopOverview(hello, ws);

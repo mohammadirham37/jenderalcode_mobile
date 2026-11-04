@@ -9,13 +9,16 @@ class RpcError implements Exception {
   const RpcError(this.code, [this.message = '']);
 
   /// Desktop codes: bad_request, not_found, remote_disabled, yolo_blocked,
-  /// busy, internal. Local codes: timeout, offline, not_paired, closed.
+  /// not_allowed, busy, internal. Local codes: timeout, offline, not_paired, closed.
   final String code;
   final String message;
 
   String get readable => switch (code) {
         'yolo_blocked' =>
-          'This session uses Full access. Change its mode on the desktop to control it remotely.',
+          'This session uses Full access, which the desktop does not allow from the phone. '
+              'Switch it to Balanced or Safe, or allow it on the desktop: Settings → Remote control.',
+        'not_allowed' =>
+          'The desktop does not allow this from the phone. Allow it on the desktop: Settings → Remote control.',
         'remote_disabled' => 'Remote access is turned off on the desktop.',
         'busy' => 'The desktop is busy with this session. Try again in a moment.',
         'not_found' => message.isNotEmpty ? message : 'Not found on the desktop.',

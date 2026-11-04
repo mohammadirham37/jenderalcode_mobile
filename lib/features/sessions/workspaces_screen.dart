@@ -7,6 +7,7 @@ import '../../core/rpc/models.dart';
 import '../../core/rpc/rpc_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
+import '../desktops/capabilities.dart';
 import '../desktops/desktops_controller.dart';
 import 'sessions_providers.dart';
 
@@ -32,6 +33,13 @@ class WorkspacesScreen extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(child: Text(desktop?.name ?? 'Desktop', overflow: TextOverflow.ellipsis)),
         ]),
+        actions: [
+          IconButton(
+            tooltip: 'Agent usage',
+            icon: const Icon(Icons.speed),
+            onPressed: () => context.push('/d/$desktopId/usage'),
+          ),
+        ],
       ),
       body: Column(children: [
         const ConnectionStrip(),
@@ -50,6 +58,8 @@ class WorkspacesScreen extends ConsumerWidget {
                   Text('JenderalCode ${o.hello.desktopVersion}',
                       style: mono(context, size: 11.5, color: cs.onSurfaceVariant)),
                   const SizedBox(height: 16),
+                  _TerminalsEntry(desktopId: desktopId),
+                  const SizedBox(height: 20),
                   const Eyebrow('Projects'),
                   const SizedBox(height: 8),
                   if (o.workspaces.isEmpty)
@@ -106,6 +116,39 @@ class _WorkspaceTile extends StatelessWidget {
                 Text(w.rootPath,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
+                    style: mono(context, size: 11.5, color: cs.onSurfaceVariant)),
+              ]),
+            ),
+            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _TerminalsEntry extends ConsumerWidget {
+  const _TerminalsEntry({required this.desktopId});
+  final String desktopId;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final on = ref.watch(capabilitiesProvider(desktopId)).terminal;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push('/d/$desktopId/t'),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Icon(Icons.terminal, size: 20, color: on ? cs.primary : cs.onSurfaceVariant),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Terminals',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 3),
+                Text(on ? 'Desktop tabs and shells opened from this phone' : allowOnDesktopHint,
                     style: mono(context, size: 11.5, color: cs.onSurfaceVariant)),
               ]),
             ),

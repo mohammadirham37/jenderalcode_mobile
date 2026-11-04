@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/config.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/widgets/logo.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -52,6 +53,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const Align(alignment: Alignment.centerLeft, child: Logo(size: 72)),
+                  const SizedBox(height: 24),
                   const Eyebrow('Remote · v1'),
                   const SizedBox(height: 8),
                   Text('JenderalCode',

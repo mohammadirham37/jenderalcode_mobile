@@ -7,6 +7,7 @@ import '../../core/relay/relay_api.dart';
 import '../../core/storage/secure_store.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
+import '../../core/widgets/logo.dart';
 import '../auth/auth_controller.dart';
 import 'desktops_controller.dart';
 
@@ -74,7 +75,11 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
     final account = ref.watch(authProvider).value?.account;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Desktops'),
+        title: const Row(children: [
+          Logo(size: 24),
+          SizedBox(width: 10),
+          Text('Desktops'),
+        ]),
         actions: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),

@@ -1,0 +1,380 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../core/providers.dart';
+import '../../core/rpc/rpc_client.dart';
+import '../../core/theme/app_theme.dart';
+import 'chat_catalog.dart';
+import 'composer_logic.dart';
+import 'images.dart';
+
+typedef SendFn = Future<bool> Function(
+    String text, List<String> attachments, List<ImageAttachment> images);
+
+/// Message box with `@` file mentions (`fs.find`), the `/` skill menu
+/// (`skills.list`) and photo attachments.
+class Composer extends ConsumerStatefulWidget {
+  const Composer({
+    super.key,
+    required this.desktopId,
+    required this.workspaceId,
+    required this.busy,
+    required this.sending,
+    required this.imagesAllowed,
+    required this.onSend,
+    required this.onStop,
+    this.toolbar,
+  });
+  final String desktopId;
+  final String? workspaceId;
+  final bool busy;
+  final bool sending;
+
+  /// False when the selected model is known to lack vision.
+  final bool imagesAllowed;
+  final SendFn onSend;
+  final VoidCallback onStop;
+
+  /// Row above the text field (agent, model, context meter).
+  final Widget? toolbar;
+
+  @override
+  ConsumerState<Composer> createState() => _ComposerState();
+}
+
+class _ComposerState extends ConsumerState<Composer> {
+  final _input = TextEditingController();
+  final _focus = FocusNode();
+  List<String> _attachments = const [];
+  List<ImageAttachment> _images = const [];
+  bool _preparing = false;
+
+  MentionQuery? _mention;
+  List<String> _found = const [];
+  Timer? _findDebounce;
+  int _findGen = 0;
+  String? _slash;
+
+  @override
+  void initState() {
+    super.initState();
+    _input.addListener(_onChanged);
+  }
+
+  @override
+  void dispose() {
+    _findDebounce?.cancel();
+    _input.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final sel = _input.selection;
+    final cursor = sel.isValid && sel.isCollapsed ? sel.baseOffset : -1;
+    final text = _input.text;
+    final m = widget.workspaceId == null ? null : activeMention(text, cursor);
+    final slash = widget.workspaceId == null ? null : activeSlash(text, cursor);
+    if (slash != _slash) setState(() => _slash = slash);
+    if (m?.query != _mention?.query || (m == null) != (_mention == null)) {
+      setState(() {
+        _mention = m;
+        if (m == null) _found = const [];
+      });
+      _findDebounce?.cancel();
+      if (m != null) _findDebounce = Timer(const Duration(milliseconds: 150), () => _find(m.query));
+    } else {
+      _mention = m;
+    }
+  }
+
+  Future<void> _find(String query) async {
+    final hub = ref.read(hubProvider);
+    final wid = widget.workspaceId;
+    if (hub == null || wid == null || !hub.isKnown(widget.desktopId)) return;
+    final gen = ++_findGen;
+    try {
+      final r = await hub.rpc(widget.desktopId).call('fs.find', {'workspace_id': wid, 'query': query});
+      final paths = [for (final p in (r['paths'] as List? ?? const [])) if (p is String) p];
+      if (mounted && gen == _findGen && _mention != null) setState(() => _found = paths);
+    } on RpcError {
+      if (mounted && gen == _findGen) setState(() => _found = const []);
+    }
+  }
+
+  void _pickPath(String path) {
+    final m = _mention;
+    if (m == null) return;
+    final r = applyMention(_input.text, m, path);
+    final next = addAttachment(_attachments, path);
+    if (identical(next, _attachments) && !_attachments.contains(path)) {
+      _snack('Up to $maxAttachments files per message.');
+    }
+    setState(() {
+      _attachments = next;
+      _mention = null;
+      _found = const [];
+    });
+    _input.value = TextEditingValue(text: r.text, selection: TextSelection.collapsed(offset: r.cursor));
+  }
+
+  void _pickSkill(String name) {
+    final text = applySlash(_input.text, name);
+    setState(() => _slash = null);
+    _input.value = TextEditingValue(
+        text: text, selection: TextSelection.collapsed(offset: name.length + 2));
+  }
+
+  Future<void> _addImages(ImageSource source) async {
+    final left = maxImages - _images.length;
+    if (left <= 0) {
+      _snack('Up to $maxImages images per message.');
+      return;
+    }
+    final picker = ImagePicker();
+    final List<XFile> files;
+    try {
+      if (source == ImageSource.camera) {
+        final f = await picker.pickImage(
+            source: ImageSource.camera,
+            maxWidth: maxImageSide.toDouble(),
+            maxHeight: maxImageSide.toDouble(),
+            imageQuality: 90);
+        files = f == null ? const [] : [f];
+      } else {
+        files = await picker.pickMultiImage(
+            limit: left > 1 ? left : null,
+            maxWidth: maxImageSide.toDouble(),
+            maxHeight: maxImageSide.toDouble(),
+            imageQuality: 90);
+      }
+    } on PlatformException catch (e) {
+      _snack(e.code == 'camera_access_denied'
+          ? 'Camera access is off for JenderalCode. Turn it on in the phone settings.'
+          : 'Could not open the ${source == ImageSource.camera ? 'camera' : 'gallery'}.');
+      return;
+    }
+    if (files.isEmpty || !mounted) return;
+    setState(() => _preparing = true);
+    try {
+      var list = _images;
+      for (final f in files.take(left)) {
+        final img = await prepareImage(await f.readAsBytes());
+        final err = imageAddError(list, img);
+        if (err != null) {
+          _snack(err);
+          break;
+        }
+        list = [...list, img];
+      }
+      if (mounted) setState(() => _images = list);
+    } catch (e) {
+      _snack(e is ImagePrepError ? e.message : 'Could not read the image.');
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
+  }
+
+  Future<void> _attachMenu() async {
+    final src = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined),
+            title: const Text('Take photo'),
+            onTap: () => Navigator.pop(c, ImageSource.camera),
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Choose from gallery'),
+            onTap: () => Navigator.pop(c, ImageSource.gallery),
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+    if (src != null) await _addImages(src);
+  }
+
+  Future<void> _send() async {
+    final text = _input.text;
+    final images = widget.imagesAllowed ? _images : const <ImageAttachment>[];
+    if (text.trim().isEmpty && _attachments.isEmpty && images.isEmpty) return;
+    // Only keep mentions still present in the text.
+    final attachments = [for (final p in _attachments) if (text.contains('@$p')) p];
+    final ok = await widget.onSend(text, attachments, images);
+    if (ok && mounted && _input.text == text) {
+      _input.clear();
+      setState(() {
+        _attachments = const [];
+        _images = const [];
+      });
+    }
+  }
+
+  void _snack(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final busy = widget.busy;
+    final wid = widget.workspaceId;
+    final suggestions = _suggestions(context, wid);
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: BoxDecoration(
+          color: cs.surface,
+          border: Border(top: BorderSide(color: cs.outlineVariant)),
+        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ?suggestions,
+          if (_attachments.isNotEmpty || _images.isNotEmpty || _preparing) _chips(context),
+          ?widget.toolbar,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 4, 10, 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              IconButton(
+                tooltip: widget.imagesAllowed ? 'Attach photo' : 'This model cannot read images',
+                onPressed: widget.imagesAllowed && !_preparing ? _attachMenu : null,
+                icon: const Icon(Icons.add_photo_alternate_outlined),
+              ),
+              Expanded(
+                child: TextField(
+                  controller: _input,
+                  focusNode: _focus,
+                  minLines: 1,
+                  maxLines: 6,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: busy ? 'Steer the running turn…' : 'Message, @file, /skill…',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (busy) ...[
+                IconButton.outlined(
+                  tooltip: 'Stop',
+                  onPressed: widget.onStop,
+                  icon: Icon(Icons.stop, color: cs.error),
+                ),
+                const SizedBox(width: 6),
+              ],
+              IconButton.filled(
+                tooltip: busy ? 'Steer' : 'Send',
+                onPressed: widget.sending || _preparing ? null : _send,
+                icon: widget.sending
+                    ? const SizedBox(
+                        width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.arrow_upward),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget? _suggestions(BuildContext context, String? wid) {
+    if (wid == null) return null;
+    final cs = Theme.of(context).colorScheme;
+    final List<(String, String?, VoidCallback)> rows;
+    if (_slash != null) {
+      final skills = ref.watch(skillsProvider((desktopId: widget.desktopId, workspaceId: wid)));
+      final list = filterSkills(skills.value ?? const [], _slash!);
+      rows = [
+        for (final s in list.take(30))
+          ('/${s.name}', s.description.isEmpty ? (s.project ? 'project' : null) : s.description,
+              () => _pickSkill(s.name)),
+      ];
+      if (rows.isEmpty) return null;
+    } else if (_mention != null && _found.isNotEmpty) {
+      rows = [for (final p in _found) (p, null, () => _pickPath(p))];
+    } else {
+      return null;
+    }
+    return Container(
+      constraints: const BoxConstraints(maxHeight: 220),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        border: Border(bottom: BorderSide(color: cs.outlineVariant)),
+      ),
+      child: ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        children: [
+          for (final (title, sub, onTap) in rows)
+            InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: mono(context, size: 12.5, color: cs.onSurface)),
+                  if (sub != null)
+                    Text(sub,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chips(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(10, 6, 10, 2),
+        children: [
+          for (final p in _attachments)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InputChip(
+                visualDensity: VisualDensity.compact,
+                avatar: const Icon(Icons.description_outlined, size: 14),
+                label: Text(p.split('/').last, style: mono(context, size: 11.5)),
+                onDeleted: () => setState(() => _attachments = [..._attachments]..remove(p)),
+              ),
+            ),
+          for (final (i, img) in _images.indexed)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InputChip(
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(Icons.image_outlined,
+                    size: 14, color: widget.imagesAllowed ? null : cs.error),
+                label: Text(
+                    widget.imagesAllowed
+                        ? '${img.width}×${img.height}'
+                        : 'not sent: model has no vision',
+                    style: mono(context, size: 11.5)),
+                onDeleted: () => setState(() => _images = [..._images]..removeAt(i)),
+              ),
+            ),
+          if (_preparing)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+        ],
+      ),
+    );
+  }
+}

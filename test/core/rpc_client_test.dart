@@ -55,8 +55,7 @@ void main() {
         f,
         throwsA(isA<RpcError>()
             .having((e) => e.code, 'code', 'yolo_blocked')
-            .having((e) => e.readable, 'readable',
-                'This session uses Full access. Change its mode on the desktop to control it remotely.')));
+            .having((e) => e.readable, 'readable', contains('Settings → Remote control'))));
   });
 
   test('times out and ignores the late response', () async {
