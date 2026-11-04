@@ -1,5 +1,5 @@
-/// Build-time configuration from `--dart-define`. No client ids are stored in
-/// the source tree; the relay is the official one (docs/protocol.md §0).
+/// Build-time configuration. Defaults are the official relay (docs/protocol.md
+/// §0) and the public Google web client id; `--dart-define` overrides both.
 class AppConfig {
   AppConfig._();
 
@@ -12,13 +12,19 @@ class AppConfig {
       String.fromEnvironment('RELAY_URL', defaultValue: officialRelay);
 
   /// Google OAuth *web* client id; the relay checks the ID token's `aud`.
-  static const String googleServerClientId =
-      String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
+  /// Public (not a secret; it is in every APK). Override with
+  /// `--dart-define=GOOGLE_SERVER_CLIENT_ID=...`.
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '462424971559-uf9k60petafou67ll7tokua2fi1a59af.apps.googleusercontent.com',
+  );
 
   /// Shows the email-only dev login (`POST /v1/auth/dev`) instead of Google.
   static const bool devLogin = bool.fromEnvironment('DEV_LOGIN');
 
-  static const String appVersion = '0.1.0';
+  /// Installed app version (pubspec `version`), set in `main()` from
+  /// package_info; sent to the desktop in `hello`.
+  static String appVersion = '0.0.0';
 
   static bool get hasRelay => relayUrl.isNotEmpty;
 

@@ -9,6 +9,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/logo.dart';
 import '../auth/auth_controller.dart';
+import '../updates/update_controller.dart';
+import '../updates/update_ui.dart';
 import 'desktops_controller.dart';
 
 class DesktopsScreen extends ConsumerStatefulWidget {
@@ -24,6 +26,17 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
   void initState() {
     super.initState();
     Future.microtask(() => _sync(quiet: true));
+    // An update found before this screen existed (e.g. during sign-in).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrompt());
+  }
+
+  void _maybePrompt() {
+    if (!mounted) return;
+    final s = ref.read(updateProvider);
+    final rel = s.available;
+    if (s.promptVersion == null || rel == null) return;
+    ref.read(updateProvider.notifier).promptShown();
+    showUpdateDialog(context, ref, rel);
   }
 
   Future<void> _sync({bool quiet = false}) async {
@@ -73,6 +86,9 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
     final desktops = ref.watch(desktopsProvider);
     final presence = ref.watch(presenceProvider).value ?? const {};
     final account = ref.watch(authProvider).value?.account;
+    ref.listen(updateProvider.select((s) => s.promptVersion), (_, v) {
+      if (v != null) _maybePrompt();
+    });
     return Scaffold(
       appBar: AppBar(
         title: const Row(children: [
@@ -81,6 +97,7 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
           Text('Desktops'),
         ]),
         actions: [
+          const UpdateBadge(),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (v) {
@@ -91,6 +108,8 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
                   ref.read(themeModeProvider.notifier).set(ThemeMode.light);
                 case 'system':
                   ref.read(themeModeProvider.notifier).set(ThemeMode.system);
+                case 'about':
+                  context.push('/about');
                 case 'logout':
                   _logout();
               }
@@ -106,6 +125,7 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
               const PopupMenuItem(value: 'light', child: Text('Light theme')),
               const PopupMenuItem(value: 'system', child: Text('System theme')),
               const PopupMenuDivider(),
+              const PopupMenuItem(value: 'about', child: Text('About / Updates')),
               const PopupMenuItem(value: 'logout', child: Text('Sign out')),
             ],
           ),

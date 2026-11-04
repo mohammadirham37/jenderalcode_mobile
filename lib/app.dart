@@ -14,6 +14,8 @@ import 'features/pairing/scanner_screen.dart';
 import 'features/sessions/sessions_screen.dart';
 import 'features/sessions/workspaces_screen.dart';
 import 'features/agents/agent_usage_screen.dart';
+import 'features/updates/update_controller.dart';
+import 'features/updates/update_ui.dart';
 import 'features/project/project_screen.dart';
 import 'features/terminal/terminal_screen.dart';
 import 'features/terminal/terminals_screen.dart';
@@ -49,6 +51,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const DesktopsScreen(),
         routes: [
           GoRoute(path: 'pair', builder: (_, _) => const ScannerScreen()),
+          GoRoute(path: 'about', builder: (_, _) => const AboutScreen()),
           GoRoute(
             path: 'pair/confirm',
             redirect: (_, s) => s.extra is PendingPairing ? null : '/pair',
@@ -126,7 +129,10 @@ class _JenderalCodeAppState extends ConsumerState<JenderalCodeApp> {
     super.initState();
     // Phones drop sockets in the background; reconnect when we come back.
     _lifecycle = AppLifecycleListener(
-      onResume: () => ref.read(hubProvider)?.socket.resume(),
+      onResume: () {
+        ref.read(hubProvider)?.socket.resume();
+        ref.read(updateProvider.notifier).onResume();
+      },
     );
   }
 
@@ -140,6 +146,8 @@ class _JenderalCodeAppState extends ConsumerState<JenderalCodeApp> {
   Widget build(BuildContext context) {
     // Keep the relay connection alive for the whole signed-in session.
     ref.watch(hubProvider);
+    // Update checks run for the whole app lifetime.
+    ref.watch(updateProvider);
     return MaterialApp.router(
       title: 'JenderalCode',
       debugShowCheckedModeBanner: false,

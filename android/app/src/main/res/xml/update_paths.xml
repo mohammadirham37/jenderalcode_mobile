@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the in-app updater's download folder (cacheDir/updates) is shareable. -->
+<paths>
+    <cache-path name="updates" path="updates/" />
+</paths>
