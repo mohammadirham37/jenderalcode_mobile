@@ -9,6 +9,8 @@ import 'files_tab.dart';
 import 'git_tab.dart';
 import 'open_file.dart';
 import 'project_api.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 /// Tab ids accepted by [ProjectScreen.initialTab], in display order.
 const projectTabs = ['changes', 'files', 'editor', 'git', 'terminal'];
@@ -83,6 +85,7 @@ class _ProjectScreenState extends ConsumerState<ProjectScreen> with SingleTicker
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.workspaceName, overflow: TextOverflow.ellipsis),
+          actions: const [HelpButton(topic: HelpTopic.project)],
           bottom: TabBar(
             controller: _tabs,
             isScrollable: true,

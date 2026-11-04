@@ -9,6 +9,8 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/logo.dart';
 import '../auth/auth_controller.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 import '../updates/update_controller.dart';
 import '../updates/update_ui.dart';
 import 'desktops_controller.dart';
@@ -98,6 +100,7 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
         ]),
         actions: [
           const UpdateBadge(),
+          const HelpButton(),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert),
             onSelected: (v) {
@@ -110,6 +113,8 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
                   ref.read(themeModeProvider.notifier).set(ThemeMode.system);
                 case 'about':
                   context.push('/about');
+                case 'help':
+                  openHelp(context);
                 case 'logout':
                   _logout();
               }
@@ -125,17 +130,21 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
               const PopupMenuItem(value: 'light', child: Text('Light theme')),
               const PopupMenuItem(value: 'system', child: Text('System theme')),
               const PopupMenuDivider(),
+              const PopupMenuItem(value: 'help', child: Text('Help · how to use')),
               const PopupMenuItem(value: 'about', child: Text('About / Updates')),
               const PopupMenuItem(value: 'logout', child: Text('Sign out')),
             ],
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/pair'),
-        icon: const Icon(Icons.qr_code_scanner),
-        label: const Text('Pair a desktop'),
-      ),
+      // The first-run guide has its own button.
+      floatingActionButton: (desktops.value?.isEmpty ?? true)
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => context.push('/pair'),
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Pair a desktop'),
+            ),
       body: Column(children: [
         const ConnectionStrip(),
         Expanded(
@@ -145,14 +154,10 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
             data: (list) => RefreshIndicator(
               onRefresh: _sync,
               child: list.isEmpty
-                  ? ListView(children: const [
-                      SizedBox(height: 120),
-                      EmptyPanel(
-                        title: 'No desktops yet',
-                        body:
-                            'On the desktop, turn on Remote and show the pairing QR code. Then tap "Pair a desktop".',
-                      ),
-                    ])
+                  ? ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 96),
+                      children: const [_Onboarding()],
+                    )
                   : ListView.separated(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
                       itemCount: list.length,
@@ -175,6 +180,81 @@ class _DesktopsScreenState extends ConsumerState<DesktopsScreen> {
         ),
       ]),
     );
+  }
+}
+
+/// First run: how to pair, step by step.
+class _Onboarding extends StatelessWidget {
+  const _Onboarding();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Widget step(int n, IconData icon, String title, String body) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 28,
+              height: 28,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+              child: Text('$n',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: cs.onPrimary)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(icon, size: 16, color: cs.primary),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(title,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  ),
+                ]),
+                const SizedBox(height: 3),
+                Text(body, style: TextStyle(color: cs.onSurfaceVariant, height: 1.4)),
+              ]),
+            ),
+          ]),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const Center(child: Logo(size: 56)),
+      const SizedBox(height: 16),
+      Text('Connect your desktop',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface)),
+      const SizedBox(height: 6),
+      Text('Control JenderalCode Desktop from this phone in three steps.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: cs.onSurfaceVariant)),
+      const SizedBox(height: 24),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 18, 16, 6),
+          child: Column(children: [
+            step(1, Icons.desktop_windows_outlined, 'Open Remote control on the desktop',
+                'Settings → Remote control → turn on "Allow remote control".'),
+            step(2, Icons.qr_code_2, 'Show the QR code',
+                'Press "Pair a phone". The desktop shows a QR code.'),
+            step(3, Icons.qr_code_scanner, 'Scan it here',
+                'Tap "Pair a desktop" below, scan, and check that both screens show the same 6-digit code.'),
+          ]),
+        ),
+      ),
+      const SizedBox(height: 16),
+      FilledButton.icon(
+        onPressed: () => context.push('/pair'),
+        icon: const Icon(Icons.qr_code_scanner, size: 18),
+        label: const Text('Pair a desktop'),
+      ),
+      const SizedBox(height: 8),
+      TextButton.icon(
+        onPressed: () => openHelp(context, HelpTopic.start),
+        icon: const Icon(Icons.help_outline, size: 18),
+        label: const Text('Full guide'),
+      ),
+    ]);
   }
 }
 
@@ -203,10 +283,22 @@ class _DesktopCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 4, 12),
+          padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
           child: Row(children: [
-            OnlineDot(online: online),
-            const SizedBox(width: 12),
+            Stack(clipBehavior: Clip.none, children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: online ? 0.14 : 0.06),
+                  borderRadius: BorderRadius.circular(radius),
+                ),
+                child: Icon(Icons.desktop_windows_outlined,
+                    color: online ? cs.primary : cs.onSurfaceVariant),
+              ),
+              Positioned(right: -2, bottom: -2, child: OnlineDot(online: online, size: 11)),
+            ]),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(desktop.name,

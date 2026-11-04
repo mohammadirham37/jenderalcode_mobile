@@ -15,6 +15,8 @@ import '../desktops/capabilities.dart';
 import '../terminal/terminal_controller.dart';
 import '../terminal/terminal_look.dart';
 import 'sessions_providers.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 class SessionsScreen extends ConsumerStatefulWidget {
   const SessionsScreen({
@@ -189,23 +191,29 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.workspaceName, overflow: TextOverflow.ellipsis),
-        actions: [
-          IconButton(
-            tooltip: 'Changes, files, git',
-            icon: const Icon(Icons.folder_open_outlined),
-            onPressed: () => _project('changes'),
+        actions: const [HelpButton(topic: HelpTopic.chat)],
+        // Labeled shortcuts: easier to find than bare icons.
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: SizedBox(
+            height: 52,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+              children: [
+                _Shortcut(icon: Icons.difference_outlined, label: 'Changes', onTap: () => _project('changes')),
+                _Shortcut(icon: Icons.folder_outlined, label: 'Files', onTap: () => _project('files')),
+                _Shortcut(icon: Icons.commit, label: 'Git', onTap: () => _project('git')),
+                _Shortcut(icon: Icons.terminal, label: 'Terminal', onTap: () => _project('terminal')),
+                _Shortcut(
+                  icon: Icons.speed,
+                  label: 'Usage',
+                  onTap: () => context.push('/d/${widget.desktopId}/usage'),
+                ),
+              ],
+            ),
           ),
-          IconButton(
-            tooltip: 'Terminals',
-            icon: const Icon(Icons.terminal),
-            onPressed: () => _project('terminal'),
-          ),
-          IconButton(
-            tooltip: 'Agent usage',
-            icon: const Icon(Icons.speed),
-            onPressed: () => context.push('/d/${widget.desktopId}/usage'),
-          ),
-        ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _creating ? null : _new,
@@ -224,9 +232,18 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
             data: (list) => RefreshIndicator(
               onRefresh: refresh,
               child: list.isEmpty && agents.isEmpty
-                  ? ListView(children: const [
-                      SizedBox(height: 120),
-                      EmptyPanel(title: 'No sessions', body: 'Start one with "New session".'),
+                  ? ListView(children: [
+                      const SizedBox(height: 100),
+                      EmptyPanel(
+                        title: 'No sessions yet',
+                        body: 'Tap "New session" to chat with the JenderalCode agent '
+                            'or start Claude Code, Codex and other agent CLIs.',
+                        action: TextButton.icon(
+                          onPressed: () => openHelp(context, HelpTopic.agents),
+                          icon: const Icon(Icons.help_outline, size: 18),
+                          label: const Text('How it works'),
+                        ),
+                      ),
                     ])
                   : ListView(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -291,6 +308,8 @@ class _SessionTile extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
           child: Row(children: [
+            Icon(Icons.chat_bubble_outline, size: 20, color: s.isYolo ? cs.error : cs.primary),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
@@ -367,5 +386,21 @@ class _RenameDialogState extends State<_RenameDialog> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(onPressed: _submit, child: const Text('Rename')),
         ],
+      );
+}
+
+class _Shortcut extends StatelessWidget {
+  const _Shortcut({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: ActionChip(
+          avatar: Icon(icon, size: 17),
+          label: Text(label),
+          onPressed: onTap,
+        ),
       );
 }

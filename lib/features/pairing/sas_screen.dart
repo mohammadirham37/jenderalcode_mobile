@@ -10,6 +10,8 @@ import '../../core/theme/app_theme.dart';
 import '../auth/auth_controller.dart';
 import '../desktops/desktops_controller.dart';
 import 'pairing_service.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 /// Step 2: compare the code with the desktop, then Connect.
 class SasScreen extends ConsumerStatefulWidget {
@@ -67,7 +69,10 @@ class _SasScreenState extends ConsumerState<SasScreen> {
     final left = ((p.claim.expiresAt - DateTime.now().millisecondsSinceEpoch) / 1000).ceil();
     final expired = left <= 0;
     return Scaffold(
-      appBar: AppBar(title: const Text('Verify desktop')),
+      appBar: AppBar(
+        title: const Text('Verify desktop'),
+        actions: const [HelpButton(topic: HelpTopic.start)],
+      ),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(24), children: [
           Eyebrow(_done ? 'Paired' : 'Step 2 of 2'),

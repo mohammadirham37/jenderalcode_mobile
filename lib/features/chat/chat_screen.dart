@@ -16,6 +16,8 @@ import 'chat_widgets.dart';
 import 'composer.dart';
 import 'composer_logic.dart';
 import 'policy.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
@@ -163,6 +165,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             tooltip: 'More',
             onSelected: (v) => switch (v) {
               'checkpoints' => _checkpoints(),
+              'help' => openHelp(context, HelpTopic.chat),
               _ => _openProject(s, v),
             },
             itemBuilder: (_) => [
@@ -173,6 +176,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 PopupMenuItem(value: 'git', child: Text('Git')),
                 PopupMenuItem(value: 'terminal', child: Text('Terminal')),
               ],
+              const PopupMenuDivider(),
+              const PopupMenuItem(value: 'help', child: Text('Help')),
             ],
           ),
         ],

@@ -26,7 +26,8 @@ class Neutral {
 }
 
 const String monoFamily = 'monospace';
-const double radius = 4;
+/// Corner radius; rounder than the desktop's (3–6 px) for touch.
+const double radius = 8;
 
 TextStyle mono(BuildContext context, {double? size, Color? color, FontWeight? weight}) =>
     TextStyle(
@@ -158,7 +159,17 @@ ThemeData buildTheme(Brightness b) {
       backgroundColor: scheme.surfaceContainerLow,
       surfaceTintColor: Colors.transparent,
     ),
-    listTileTheme: ListTileThemeData(shape: shape),
+    listTileTheme: ListTileThemeData(shape: shape, minVerticalPadding: 10),
+    chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(radius),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      backgroundColor: scheme.surfaceContainerLow,
+      labelStyle: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: scheme.onSurface),
+      iconTheme: IconThemeData(color: scheme.primary, size: 17),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: scheme.primary),
   );
 }

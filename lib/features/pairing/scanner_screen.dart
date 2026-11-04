@@ -9,6 +9,8 @@ import '../../core/theme/app_theme.dart';
 import '../auth/auth_controller.dart';
 import 'pairing_service.dart';
 import 'qr_payload.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 class ScannerScreen extends ConsumerStatefulWidget {
   const ScannerScreen({super.key});
@@ -108,6 +110,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       appBar: AppBar(
         title: const Text('Pair a desktop'),
         actions: [
+          const HelpButton(topic: HelpTopic.start),
           IconButton(
             tooltip: 'Enter link',
             icon: const Icon(Icons.keyboard),

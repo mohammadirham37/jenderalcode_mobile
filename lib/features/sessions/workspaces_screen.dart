@@ -10,6 +10,8 @@ import '../../core/widgets/common.dart';
 import '../desktops/capabilities.dart';
 import '../desktops/desktops_controller.dart';
 import 'sessions_providers.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 class WorkspacesScreen extends ConsumerWidget {
   const WorkspacesScreen({super.key, required this.desktopId});
@@ -33,13 +35,7 @@ class WorkspacesScreen extends ConsumerWidget {
           const SizedBox(width: 10),
           Expanded(child: Text(desktop?.name ?? 'Desktop', overflow: TextOverflow.ellipsis)),
         ]),
-        actions: [
-          IconButton(
-            tooltip: 'Agent usage',
-            icon: const Icon(Icons.speed),
-            onPressed: () => context.push('/d/$desktopId/usage'),
-          ),
-        ],
+        actions: const [HelpButton(topic: HelpTopic.chat)],
       ),
       body: Column(children: [
         const ConnectionStrip(),
@@ -55,12 +51,32 @@ class WorkspacesScreen extends ConsumerWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                 children: [
+                  if (!online) ...[
+                    const _OfflineNote(),
+                    const SizedBox(height: 12),
+                  ],
                   Text('JenderalCode ${o.hello.desktopVersion}',
                       style: mono(context, size: 11.5, color: cs.onSurfaceVariant)),
-                  const SizedBox(height: 16),
-                  _TerminalsEntry(desktopId: desktopId),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
+                  IntrinsicHeight(
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      Expanded(child: _TerminalsEntry(desktopId: desktopId)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _QuickCard(
+                          icon: Icons.speed,
+                          title: 'Agent usage',
+                          body: 'Claude Code, Codex and other quotas',
+                          onTap: () => context.push('/d/$desktopId/usage'),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: 22),
                   const Eyebrow('Projects'),
+                  const SizedBox(height: 2),
+                  Text('Pick a project to chat, run agents or view files.',
+                      style: TextStyle(fontSize: 12.5, color: cs.onSurfaceVariant)),
                   const SizedBox(height: 8),
                   if (o.workspaces.isEmpty)
                     const EmptyPanel(
@@ -97,7 +113,15 @@ class _WorkspaceTile extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(children: [
-            Icon(Icons.folder_outlined, size: 20, color: cs.onSurfaceVariant),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(radius),
+              ),
+              child: Icon(Icons.folder_outlined, size: 21, color: cs.primary),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -132,30 +156,82 @@ class _TerminalsEntry extends ConsumerWidget {
   final String desktopId;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cs = Theme.of(context).colorScheme;
     final on = ref.watch(capabilitiesProvider(desktopId)).terminal;
+    return _QuickCard(
+      icon: Icons.terminal,
+      title: 'Terminals',
+      body: on ? 'Desktop tabs and new shells' : allowOnDesktopHint,
+      dim: !on,
+      onTap: () => context.push('/d/$desktopId/t'),
+    );
+  }
+}
+
+/// A square shortcut card (Terminals, Agent usage).
+class _QuickCard extends StatelessWidget {
+  const _QuickCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.onTap,
+    this.dim = false,
+  });
+  final IconData icon;
+  final String title;
+  final String body;
+  final VoidCallback onTap;
+  final bool dim;
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.push('/d/$desktopId/t'),
+        onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            Icon(Icons.terminal, size: 20, color: on ? cs.primary : cs.onSurfaceVariant),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Terminals',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 3),
-                Text(on ? 'Desktop tabs and shells opened from this phone' : allowOnDesktopHint,
-                    style: mono(context, size: 11.5, color: cs.onSurfaceVariant)),
-              ]),
-            ),
-            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 22, color: dim ? cs.onSurfaceVariant : cs.primary),
+            const SizedBox(height: 10),
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 3),
+            Text(body, style: TextStyle(fontSize: 12, height: 1.35, color: cs.onSurfaceVariant)),
           ]),
         ),
       ),
+    );
+  }
+}
+
+/// Shown while the desktop is offline: what to check.
+class _OfflineNote extends StatelessWidget {
+  const _OfflineNote();
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Icon(Icons.cloud_off_outlined, size: 20, color: cs.onSurfaceVariant),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Desktop is offline', style: TextStyle(fontWeight: FontWeight.w600)),
+            const SizedBox(height: 2),
+            Text('Open JenderalCode on the computer and keep Remote control on.',
+                style: TextStyle(fontSize: 12.5, height: 1.35, color: cs.onSurfaceVariant)),
+          ]),
+        ),
+        TextButton(
+          onPressed: () => openHelp(context, HelpTopic.trouble),
+          child: const Text('Help'),
+        ),
+      ]),
     );
   }
 }

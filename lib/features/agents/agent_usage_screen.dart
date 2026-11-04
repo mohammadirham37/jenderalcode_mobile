@@ -6,6 +6,8 @@ import '../../core/rpc/rpc_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/common.dart';
 import 'agent_cli.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 /// Subscription usage of the agent CLIs (`agent_clis.usage`), like the
 /// desktop's Gauge button. Read-only.
@@ -18,7 +20,10 @@ class AgentUsageScreen extends ConsumerWidget {
     final data = ref.watch(agentUsageProvider(desktopId));
     Future<void> refresh() => ref.refresh(agentUsageProvider(desktopId).future);
     return Scaffold(
-      appBar: AppBar(title: const Text('Agent usage')),
+      appBar: AppBar(
+        title: const Text('Agent usage'),
+        actions: const [HelpButton(topic: HelpTopic.usage)],
+      ),
       body: Column(children: [
         const ConnectionStrip(),
         Expanded(

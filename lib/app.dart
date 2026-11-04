@@ -14,6 +14,7 @@ import 'features/pairing/scanner_screen.dart';
 import 'features/sessions/sessions_screen.dart';
 import 'features/sessions/workspaces_screen.dart';
 import 'features/agents/agent_usage_screen.dart';
+import 'features/help/help_screen.dart';
 import 'features/updates/update_controller.dart';
 import 'features/updates/update_ui.dart';
 import 'features/project/project_screen.dart';
@@ -39,6 +40,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return loc == '/splash' ? null : '/splash';
       }
       final signedIn = auth.value != null;
+      // The guide is readable before signing in.
+      if (loc == '/help') return null;
       if (!signedIn) return loc == '/login' ? null : '/login';
       if (loc == '/login' || loc == '/splash') return '/';
       return null;
@@ -46,6 +49,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/splash', builder: (_, _) => const _Splash()),
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
+      GoRoute(
+        path: '/help',
+        builder: (_, s) => HelpScreen(initial: HelpScreen.parse(s.uri.queryParameters['topic'])),
+      ),
       GoRoute(
         path: '/',
         builder: (_, _) => const DesktopsScreen(),

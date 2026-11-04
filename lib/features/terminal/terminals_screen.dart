@@ -11,6 +11,8 @@ import '../desktops/capabilities.dart';
 import '../sessions/sessions_providers.dart';
 import 'terminal_controller.dart';
 import 'terminal_look.dart';
+import '../help/help_content.dart';
+import '../help/help_screen.dart';
 
 /// Full page: every terminal on one desktop.
 class TerminalsScreen extends StatelessWidget {
@@ -19,7 +21,10 @@ class TerminalsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Terminals')),
+        appBar: AppBar(
+          title: const Text('Terminals'),
+          actions: const [HelpButton(topic: HelpTopic.terminals)],
+        ),
         body: Column(children: [
           const ConnectionStrip(),
           Expanded(child: TerminalsView(desktopId: desktopId)),

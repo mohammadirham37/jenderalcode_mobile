@@ -21,7 +21,7 @@ class AgentSessionTile extends ConsumerWidget {
     final bypass = t.bypass || ref.watch(bypassTerminalsProvider).contains(t.id);
     final meta = [
       'agent CLI',
-      t.isRemote ? 'from this phone' : 'desktop tab',
+      t.isRemote ? 'opened from phone · also on desktop' : 'desktop tab',
       '${t.cols}×${t.rows}',
     ].join(' · ');
     return Card(

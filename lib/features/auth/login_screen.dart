@@ -5,6 +5,7 @@ import '../../core/config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/logo.dart';
 import 'auth_controller.dart';
+import '../help/help_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -104,7 +105,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 16),
                     _Note(text: _error!, color: cs.error),
                   ],
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
+                  TextButton.icon(
+                    onPressed: () => openHelp(context),
+                    icon: const Icon(Icons.help_outline, size: 18),
+                    label: const Text('How to use JenderalCode Mobile'),
+                  ),
+                  const SizedBox(height: 20),
                   const Eyebrow('Relay'),
                   const SizedBox(height: 4),
                   Text(
