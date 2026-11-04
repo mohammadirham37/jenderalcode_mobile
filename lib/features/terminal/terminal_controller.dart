@@ -147,6 +147,24 @@ class TerminalSessionController extends Notifier<TermState> {
     if (seq != null) sendInput(seq);
   }
 
+  /// Scrolls a full-screen program (alternate screen: Codex, OpenCode,
+  /// Antigravity) by [lines] (negative = up). Sent as mouse-wheel events when
+  /// the program asked for mouse input, otherwise as arrow keys, like
+  /// xterm.js on the desktop. The main screen scrolls its own scrollback.
+  void scrollProgram(int lines) {
+    if (lines == 0 || state.exited) return;
+    final up = lines < 0;
+    final seq = wheelSequence(
+          up: up,
+          mode: emulator.mouseMode,
+          report: emulator.mouseReportMode,
+          col: emulator.viewWidth ~/ 2 + 1,
+          row: emulator.viewHeight ~/ 2 + 1,
+        ) ??
+        extraKeySequence(up ? ExtraKey.up : ExtraKey.down, ctrl: false, appCursor: emulator.cursorKeysMode);
+    if (seq != null) sendInput(seq * lines.abs());
+  }
+
   /// Uses the emulator so bracketed paste applies when the program asked.
   void paste(String text) {
     if (text.isEmpty) return;

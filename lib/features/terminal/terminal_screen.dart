@@ -37,6 +37,12 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
   double? _pinchStartDistance;
   double _pinchStartFont = defaultTerminalFontSize;
 
+  // One-finger vertical drags over a full-screen program. xterm.dart's own
+  // handler never gets them on touch (its inner Scrollable wins the gesture
+  // arena), so they are turned into scroll input here.
+  int? _dragPointer;
+  double _dragCarry = 0;
+
   TermKey get _key => (desktopId: widget.desktopId, terminalId: widget.terminalId);
 
   @override
@@ -69,6 +75,8 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
 
   void _onPointerDown(PointerDownEvent e) {
     _pointers[e.pointer] = e.position;
+    _dragPointer = _pointers.length == 1 ? e.pointer : null;
+    _dragCarry = 0;
     if (_pointers.length == 2) {
       _pinchStartDistance = _distance();
       _pinchStartFont = _fontSize;
@@ -78,13 +86,27 @@ class _TerminalScreenState extends ConsumerState<TerminalScreen> {
   void _onPointerMove(PointerMoveEvent e) {
     if (!_pointers.containsKey(e.pointer)) return;
     _pointers[e.pointer] = e.position;
+    if (e.pointer == _dragPointer && _pointers.length == 1) _dragScroll(e.delta.dy);
     final start = _pinchStartDistance;
     final now = _distance();
     if (start != null && now != null && start > 20) _zoom(_pinchStartFont * now / start);
   }
 
+  void _dragScroll(double dy) {
+    final ctl = ref.read(terminalSessionProvider(_key).notifier);
+    if (!ctl.emulator.isUsingAltBuffer) return;
+    final line = measureCell(terminalStyle(_fontSize)).height;
+    _dragCarry += dy;
+    final lines = (_dragCarry / line).truncate();
+    if (lines == 0) return;
+    _dragCarry -= lines * line;
+    // Finger down = content down = scroll up.
+    ctl.scrollProgram(-lines);
+  }
+
   void _onPointerUp(PointerEvent e) {
     _pointers.remove(e.pointer);
+    if (e.pointer == _dragPointer) _dragPointer = null;
     if (_pointers.length < 2) _pinchStartDistance = null;
   }
 

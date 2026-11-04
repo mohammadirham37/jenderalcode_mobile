@@ -1,3 +1,5 @@
+import 'package:xterm/xterm.dart';
+
 /// Keys of the bar above the soft keyboard. Agent CLIs (Claude Code, Codex)
 /// need Esc, arrows, Ctrl+C and Enter, which phone keyboards lack.
 enum ExtraKey {
@@ -9,6 +11,8 @@ enum ExtraKey {
   up('↑'),
   down('↓'),
   right('→'),
+  pgUp('PgUp'),
+  pgDn('PgDn'),
   pipe('|'),
   tilde('~'),
   slash('/'),
@@ -53,6 +57,8 @@ String? extraKeySequence(ExtraKey k, {bool ctrl = false, bool appCursor = false}
     ExtraKey.down => arrow('B'),
     ExtraKey.right => arrow('C'),
     ExtraKey.left => arrow('D'),
+    ExtraKey.pgUp => '\x1b[5~',
+    ExtraKey.pgDn => '\x1b[6~',
     ExtraKey.pipe => ctrl ? applyCtrl('|') : '|',
     ExtraKey.tilde => ctrl ? applyCtrl('~') : '~',
     ExtraKey.slash => ctrl ? applyCtrl('/') : '/',
@@ -78,4 +84,26 @@ List<String> chunkInput(String data, {int maxUnits = 16384}) {
     i = end;
   }
   return out;
+}
+
+/// One mouse-wheel step as the program asked to receive it, or null when it
+/// does not report scrolling. Written here because xterm.dart 4.0.0 encodes
+/// wheel buttons as 68/69 (the Shift-modified codes) instead of 64/65, which
+/// Codex and OpenCode read as horizontal or Shift scrolling. [col] and [row]
+/// are 1-based.
+String? wheelSequence({
+  required bool up,
+  required MouseMode mode,
+  required MouseReportMode report,
+  required int col,
+  required int row,
+}) {
+  if (!mode.reportScroll) return null;
+  final code = up ? 64 : 65;
+  return switch (report) {
+    MouseReportMode.sgr => '\x1b[<$code;$col;${row}M',
+    MouseReportMode.urxvt => '\x1b[${code + 32};$col;${row}M',
+    _ => '\x1b[M${String.fromCharCode(32 + code)}'
+        '${String.fromCharCode(32 + col.clamp(1, 223))}${String.fromCharCode(32 + row.clamp(1, 223))}',
+  };
 }
