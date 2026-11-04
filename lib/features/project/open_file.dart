@@ -52,7 +52,7 @@ const _keep = Object();
 String readableFileError(RpcError e) => switch (e.code) {
       'bad_request' => e.message.isNotEmpty
           ? e.message
-          : 'This file cannot be opened here (binary, larger than 1 MiB, or sensitive).',
+          : 'This file cannot be opened here (binary, larger than 512 KiB, or sensitive).',
       _ => e.readable,
     };
 

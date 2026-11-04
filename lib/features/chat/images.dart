@@ -42,7 +42,7 @@ ImageAttachment _prepare(Uint8List bytes) {
       : img.copyResize(src, width: fit.width, height: fit.height, interpolation: img.Interpolation.average);
   final isPng = bytes.length > 8 && bytes[0] == 0x89 && bytes[1] == 0x50;
   final keepPng = isPng && scaled.hasAlpha;
-  final out = keepPng ? img.encodePng(scaled, level: 6) : img.encodeJpg(scaled, quality: 85);
+  final out = keepPng ? img.encodePng(scaled, level: 6) : img.encodeJpg(scaled, quality: 80);
   return ImageAttachment(
     mime: keepPng ? 'image/png' : 'image/jpeg',
     data: base64Encode(out),

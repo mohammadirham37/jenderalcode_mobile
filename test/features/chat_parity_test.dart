@@ -129,12 +129,15 @@ void main() {
       expect(out.width, 100);
     });
 
-    test('at most 4 images and 6 MB', () {
+    test('at most 4 images, small enough together for one relay frame', () {
       const one = ImageAttachment(mime: 'image/jpeg', data: 'AAAA');
       expect(imageAddError(const [], one), isNull);
       expect(imageAddError(const [one, one, one, one], one), isNotNull);
-      final big = ImageAttachment(mime: 'image/jpeg', data: 'A' * 4000000);
-      expect(imageAddError([big], big), contains('6 MB'));
+      final big = ImageAttachment(mime: 'image/jpeg', data: 'A' * 400000);
+      expect(imageAddError(const [], big), isNull);
+      expect(imageAddError([big], big), contains('too large'));
+      // The sealed message (base64 of the JSON again) stays under 1 MiB.
+      expect(maxImagesTotalBytes * 4 / 3 + 64 * 1024, lessThan(1 << 20));
     });
   });
 

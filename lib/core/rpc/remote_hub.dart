@@ -11,6 +11,9 @@ import '../storage/secure_store.dart';
 import 'models.dart';
 import 'rpc_client.dart';
 
+/// Largest sealed body that fits the relay's 1 MiB frame with its envelope.
+const maxBodyBytes = (1 << 20) - 1024;
+
 /// Why the relay session ended for good (the app must sign in again).
 enum SessionEnd { revoked, unauthorized }
 
@@ -124,6 +127,10 @@ class RemoteHub {
       try {
         final ch = await _channel(desktopId);
         final body = await ch.sealApp(m, _clock());
+        // The relay closes the connection on a frame over 1 MiB.
+        if (body.length > maxBodyBytes) {
+          throw const RpcError('too_large', 'This message is too large to send. Attach fewer or smaller images.');
+        }
         final env = const Uuid().v4();
         if (!socket.sendMsg(to: desktopId, id: env, body: body)) {
           throw const RpcError('offline');

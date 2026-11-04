@@ -4,8 +4,10 @@ import '../../core/rpc/models.dart';
 const maxAttachments = 20;
 const maxImages = 4;
 
-/// Total base64 payload for images ("≤ 6 MB before encryption").
-const maxImagesTotalBytes = 6 * 1000 * 1000;
+/// Total base64 payload for images. The sealed message must stay under the
+/// relay's 1 MiB frame (sealing base64-encodes the JSON again, ×4/3), or the
+/// relay drops this phone's connection.
+const maxImagesTotalBytes = 680 * 1000;
 
 /// An image ready for `chat.send` `images`: base64 without a `data:` prefix.
 class ImageAttachment {
@@ -26,7 +28,9 @@ bool imagesAllowedFor(Model? model) => model?.vision != false;
 String? imageAddError(List<ImageAttachment> current, ImageAttachment next) {
   if (current.length >= maxImages) return 'Up to $maxImages images per message.';
   final total = current.fold<int>(0, (n, i) => n + i.data.length) + next.data.length;
-  if (total > maxImagesTotalBytes) return 'Images are too large together (max 6 MB).';
+  if (total > maxImagesTotalBytes) {
+    return 'Images are too large together for one message. Send fewer images, or one per message.';
+  }
   return null;
 }
 
