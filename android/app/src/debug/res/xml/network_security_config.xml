@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds: cleartext everywhere, so the emulator can reach a local
+     relay (e.g. RELAY_URL=http://10.0.2.2:8080). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

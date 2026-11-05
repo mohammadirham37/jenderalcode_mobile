@@ -206,6 +206,11 @@ class _SessionsScreenState extends ConsumerState<SessionsScreen> {
                 _Shortcut(icon: Icons.commit, label: 'Git', onTap: () => _project('git')),
                 _Shortcut(icon: Icons.terminal, label: 'Terminal', onTap: () => _project('terminal')),
                 _Shortcut(
+                  icon: Icons.public,
+                  label: 'Browser',
+                  onTap: () => context.push('/d/${widget.desktopId}/browser'),
+                ),
+                _Shortcut(
                   icon: Icons.speed,
                   label: 'Usage',
                   onTap: () => context.push('/d/${widget.desktopId}/usage'),

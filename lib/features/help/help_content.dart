@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 /// Topics of the in-app guide. Screens open the guide at the topic that
 /// fits them (`HelpButton(topic: …)`).
-enum HelpTopic { start, chat, modes, agents, terminals, project, usage, trouble, security }
+enum HelpTopic { start, chat, modes, agents, terminals, project, browser, usage, trouble, security }
 
 class HelpSection {
   const HelpSection({
@@ -127,6 +127,24 @@ const helpSections = <HelpSection>[
     tips: [
       'Mengubah file dan aksi git butuh izin "Allow Full access & terminal from phone" di desktop.',
       'File rahasia seperti .env tidak bisa dibuka dari HP.',
+    ],
+  ),
+  HelpSection(
+    topic: HelpTopic.browser,
+    icon: Icons.public,
+    title: 'Browser: lihat aplikasi yang sedang dikembangkan',
+    summary: 'Buka server dev yang berjalan di komputer (mis. localhost:5173) dari HP, di mana saja.',
+    steps: [
+      'Jalankan server dev di komputer seperti biasa (npm run dev, php artisan serve, dll.).',
+      'Di HP, buka proyek lalu tekan Browser.',
+      'Ketik alamatnya, mis. localhost:5173 atau cukup 5173, lalu tekan Open. Halaman yang sedang terbuka di browser desktop juga muncul sebagai pilihan.',
+      'Setelah mengubah kode, tekan Reload.',
+    ],
+    tips: [
+      'Halaman dimuat lewat desktop, jadi lebih lambat dari di komputer, terutama saat pertama dibuka.',
+      'Live reload (HMR) belum berjalan; muat ulang secara manual.',
+      'Hanya alamat di komputer itu sendiri (localhost) yang bisa dibuka. Tautan ke internet dibuka di browser HP.',
+      'Butuh izin "Allow Full access & terminal from phone" di desktop dan JenderalCode Desktop v0.1.11 atau lebih baru.',
     ],
   ),
   HelpSection(

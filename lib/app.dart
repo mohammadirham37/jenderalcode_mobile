@@ -15,6 +15,7 @@ import 'features/sessions/sessions_screen.dart';
 import 'features/sessions/workspaces_screen.dart';
 import 'features/agents/agent_usage_screen.dart';
 import 'features/help/help_screen.dart';
+import 'features/browser/browser_screen.dart';
 import 'features/updates/update_controller.dart';
 import 'features/updates/update_ui.dart';
 import 'features/project/project_screen.dart';
@@ -87,6 +88,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ),
                   ),
                 ],
+              ),
+              GoRoute(
+                path: 'browser',
+                builder: (_, s) => BrowserScreen(
+                  desktopId: s.pathParameters['did']!,
+                  initialUrl: s.uri.queryParameters['url'],
+                ),
               ),
               GoRoute(
                 path: 'usage',

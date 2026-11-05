@@ -4,12 +4,14 @@
     <!-- In-app updates: install the verified release APK from GitHub. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
-    <!-- Cleartext HTTP is allowed only in debug builds (src/debug/AndroidManifest.xml). -->
+    <!-- Cleartext HTTP: only to 127.0.0.1/localhost (browser proxy) in release,
+         everywhere in debug builds (res/xml/network_security_config.xml). -->
     <application
         android:label="JenderalCode"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:usesCleartextTraffic="false"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round">

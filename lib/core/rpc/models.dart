@@ -284,14 +284,17 @@ class SessionHistory {
 /// What the desktop allows from the phone (§6.5). Older desktops send no
 /// `capabilities`, which means neither.
 class Capabilities {
-  const Capabilities({required this.fullAccess, required this.terminal, this.edit = false});
+  const Capabilities({required this.fullAccess, required this.terminal, this.edit = false, this.browser = false});
   final bool fullAccess;
   final bool terminal;
+
+  /// The phone browser (`http.request`, §6.10); false on older desktops.
+  final bool browser;
 
   /// Writing actions: fs.write/create/delete/rename, git writes, checkpoint restore.
   final bool edit;
 
-  static const none = Capabilities(fullAccess: false, terminal: false, edit: false);
+  static const none = Capabilities(fullAccess: false, terminal: false, edit: false, browser: false);
 
   factory Capabilities.fromJson(Object? v) {
     final j = _map(v);
@@ -299,6 +302,7 @@ class Capabilities {
       fullAccess: j['full_access'] == true,
       terminal: j['terminal'] == true,
       edit: j['edit'] == true,
+      browser: j['browser'] == true,
     );
   }
 
@@ -307,10 +311,11 @@ class Capabilities {
       other is Capabilities &&
       other.fullAccess == fullAccess &&
       other.terminal == terminal &&
-      other.edit == edit;
+      other.edit == edit &&
+      other.browser == browser;
 
   @override
-  int get hashCode => Object.hash(fullAccess, terminal, edit);
+  int get hashCode => Object.hash(fullAccess, terminal, edit, browser);
 
   @override
   String toString() =>
