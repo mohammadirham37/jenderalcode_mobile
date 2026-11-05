@@ -33,9 +33,9 @@ class ChatToolbar extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(10, 6, 10, 0),
         child: Row(children: [
-          Flexible(child: _Pill(icon: Icons.smart_toy_outlined, label: agentLabel, onTap: onAgent)),
+          Flexible(flex: 2, child: _Pill(icon: Icons.smart_toy_outlined, label: agentLabel, onTap: onAgent)),
           const SizedBox(width: 6),
-          Flexible(flex: 2, child: _Pill(icon: Icons.memory, label: modelLabel, onTap: onModel)),
+          Flexible(flex: 3, child: _Pill(icon: Icons.memory, label: modelLabel, onTap: onModel)),
           const SizedBox(width: 8),
           if (busy)
             const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5)),
@@ -57,10 +57,11 @@ class _Pill extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
+          color: cs.surfaceContainerLow,
           borderRadius: BorderRadius.circular(radius),
-          border: Border.all(color: cs.outline),
+          border: Border.all(color: cs.outlineVariant),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
           Icon(icon, size: 13, color: cs.onSurfaceVariant),
@@ -69,7 +70,7 @@ class _Pill extends StatelessWidget {
             child: Text(label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: mono(context, size: 11, color: cs.onSurface)),
+                style: mono(context, size: 11.5, color: cs.onSurface)),
           ),
           Icon(Icons.arrow_drop_down, size: 16, color: cs.onSurfaceVariant),
         ]),

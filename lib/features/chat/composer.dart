@@ -285,56 +285,80 @@ class _ComposerState extends ConsumerState<Composer> {
           if (_attachments.isNotEmpty || _images.isNotEmpty || _preparing) _chips(context),
           ?widget.toolbar,
           Padding(
-            padding: const EdgeInsets.fromLTRB(6, 4, 10, 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              IconButton(
-                tooltip: widget.imagesAllowed ? 'Attach photo' : 'This model cannot read images',
-                onPressed: widget.imagesAllowed && !_preparing ? _attachMenu : null,
-                icon: const Icon(Icons.add_photo_alternate_outlined),
-              ),
-              ListenableBuilder(
-                listenable: _input,
-                builder: (_, _) => IconButton(
-                  tooltip: 'Enhance prompt',
-                  onPressed: widget.onEnhance != null && _input.text.trim().isNotEmpty && !_enhancing
-                      ? _enhance
-                      : null,
-                  icon: _enhancing
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.edit_note),
-                ),
-              ),
-              Expanded(
-                child: TextField(
-                  controller: _input,
-                  focusNode: _focus,
-                  readOnly: _enhancing,
-                  minLines: 1,
-                  maxLines: 6,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    hintText: busy ? 'Steer the running turn…' : 'Message, @file, /skill…',
+            padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+            // One card: a full-width field, the actions below it.
+            child: ListenableBuilder(
+              listenable: Listenable.merge([_focus, _input]),
+              builder: (context, _) {
+                final hasText = _input.text.trim().isNotEmpty;
+                final canEnhance = widget.onEnhance != null && hasText && !_enhancing;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(radius + 4),
+                    border: Border.all(
+                      color: _focus.hasFocus ? cs.primary : cs.outline,
+                      width: _focus.hasFocus ? 1.5 : 1,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (busy) ...[
-                IconButton.outlined(
-                  tooltip: 'Stop',
-                  onPressed: widget.onStop,
-                  icon: Icon(Icons.stop, color: cs.error),
-                ),
-                const SizedBox(width: 6),
-              ],
-              IconButton.filled(
-                tooltip: busy ? 'Steer' : 'Send',
-                onPressed: widget.sending || _preparing ? null : _send,
-                icon: widget.sending
-                    ? const SizedBox(
-                        width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.arrow_upward),
-              ),
-            ]),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    TextField(
+                      controller: _input,
+                      focusNode: _focus,
+                      readOnly: _enhancing,
+                      minLines: 2,
+                      maxLines: 8,
+                      textCapitalization: TextCapitalization.sentences,
+                      style: const TextStyle(fontSize: 15.5, height: 1.4),
+                      decoration: InputDecoration(
+                        hintText: busy ? 'Steer the running turn…' : 'Message the agent… (@file, /skill)',
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        isDense: false,
+                        contentPadding: const EdgeInsets.fromLTRB(14, 12, 14, 4),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 0, 6, 6),
+                      child: Row(children: [
+                        IconButton(
+                          tooltip: widget.imagesAllowed ? 'Attach photo' : 'This model cannot read images',
+                          onPressed: widget.imagesAllowed && !_preparing ? _attachMenu : null,
+                          icon: const Icon(Icons.add_photo_alternate_outlined, size: 22),
+                        ),
+                        IconButton(
+                          tooltip: 'Enhance prompt',
+                          onPressed: canEnhance ? _enhance : null,
+                          icon: _enhancing
+                              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.edit_note, size: 24),
+                        ),
+                        const Spacer(),
+                        if (busy) ...[
+                          IconButton.outlined(
+                            tooltip: 'Stop',
+                            onPressed: widget.onStop,
+                            icon: Icon(Icons.stop, color: cs.error),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        IconButton.filled(
+                          tooltip: busy ? 'Steer' : 'Send',
+                          onPressed: widget.sending || _preparing ? null : _send,
+                          icon: widget.sending
+                              ? const SizedBox(
+                                  width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.arrow_upward),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                );
+              },
+            ),
           ),
         ]),
       ),

@@ -144,7 +144,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final catalog = ref.watch(modelsProvider(widget.desktopId)).value;
     final agent = agents?.where((a) => a.id == session?.agentProfileId).firstOrNull;
     final model = catalog?.find(session?.providerId, session?.modelName);
-    final agentLabel = agent == null ? 'Agent' : '${agent.name} · ${agent.modeLabel}';
+    // The name only: the pill is narrow on a phone (the picker shows the mode).
+    final agentLabel = agent?.name ?? 'Agent';
     final modelLabel = model?.label ?? session?.modelName ?? 'Model';
     final lastInput = s.usage?.lastInput ?? s.inputTokens;
 
