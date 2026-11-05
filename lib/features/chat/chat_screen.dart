@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
+import '../../core/rpc/rpc_client.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/rpc/models.dart';
 import '../../core/widgets/common.dart';
@@ -55,6 +56,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   Future<bool> _send(String text, List<String> attachments, List<ImageAttachment> images) =>
       ref.read(chatProvider(_key).notifier).send(text, attachments: attachments, images: images);
+
+  /// `chat.enhance`: the session's model can take a while to answer.
+  Future<String> _enhance(String draft) async {
+    final hub = ref.read(hubProvider);
+    if (hub == null || !hub.isKnown(widget.desktopId)) throw const RpcError('offline');
+    final r = await hub
+        .rpc(widget.desktopId)
+        .call('chat.enhance', {'session_id': widget.sessionId, 'content': draft}, const Duration(seconds: 130));
+    final text = r['text'];
+    if (text is! String || text.trim().isEmpty) throw const RpcError('enhance_failed', 'The model returned an empty prompt.');
+    return text;
+  }
 
   Future<void> _pickMode(ChatState s, Capabilities caps) async {
     final mode = await showModalBottomSheet<String>(
@@ -216,6 +229,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           imagesAllowed: imagesAllowedFor(model),
           onSend: _send,
           onStop: ctl.cancel,
+          onEnhance: session?.modelName == null ? null : _enhance,
           toolbar: session == null
               ? null
               : ChatToolbar(

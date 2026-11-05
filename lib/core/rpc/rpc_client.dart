@@ -66,11 +66,13 @@ class RpcClient {
   int get pendingCount => _pending.length;
 
   /// Sends a request and waits for its response. Throws [RpcError].
-  Future<Json> call(String method, [Json params = const {}]) async {
+  /// [wait] overrides the client's [timeout] (slow calls such as a model
+  /// answering `chat.enhance`).
+  Future<Json> call(String method, [Json params = const {}, Duration? wait]) async {
     final id = _newId();
     final p = _Pending(Completer<Json>());
     _pending[id] = p;
-    p.timer = Timer(timeout, () => _fail(id, const RpcError('timeout')));
+    p.timer = Timer(wait ?? timeout, () => _fail(id, const RpcError('timeout')));
     try {
       final env = await transport(
           {'t': 'req', 'id': id, 'method': method, 'params': params});

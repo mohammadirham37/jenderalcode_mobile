@@ -61,6 +61,7 @@ const helpSections = <HelpSection>[
       'Pesan yang dikirim selagi agent bekerja langsung mengarahkan (steer) pekerjaan yang sedang berjalan.',
       'Ganti agent (Build, Plan, Review) dan model dari baris di atas kolom pesan.',
       'Lampirkan file proyek dengan @, atau kirim foto dari kamera/galeri bila modelnya mendukung gambar.',
+      'Tombol Enhance prompt (ikon catatan di sebelah kolom pesan) menulis ulang draf Anda menjadi prompt yang lebih jelas dan lengkap dengan model sesi itu. Periksa hasilnya sebelum mengirim; tekan Undo untuk kembali ke draf semula.',
       'Menu ⋮ → Checkpoints untuk membatalkan perubahan file yang dibuat agent.',
     ],
   ),

@@ -15,6 +15,10 @@ import 'images.dart';
 typedef SendFn = Future<bool> Function(
     String text, List<String> attachments, List<ImageAttachment> images);
 
+/// "Enhance prompt" (`chat.enhance`): the draft rewritten by the session's
+/// model. Throws [RpcError].
+typedef EnhanceFn = Future<String> Function(String draft);
+
 /// Message box with `@` file mentions (`fs.find`), the `/` skill menu
 /// (`skills.list`) and photo attachments.
 class Composer extends ConsumerStatefulWidget {
@@ -27,6 +31,7 @@ class Composer extends ConsumerStatefulWidget {
     required this.imagesAllowed,
     required this.onSend,
     required this.onStop,
+    this.onEnhance,
     this.toolbar,
   });
   final String desktopId;
@@ -38,6 +43,9 @@ class Composer extends ConsumerStatefulWidget {
   final bool imagesAllowed;
   final SendFn onSend;
   final VoidCallback onStop;
+
+  /// Null when there is no session (or model) to enhance with.
+  final EnhanceFn? onEnhance;
 
   /// Row above the text field (agent, model, context meter).
   final Widget? toolbar;
@@ -52,6 +60,7 @@ class _ComposerState extends ConsumerState<Composer> {
   List<String> _attachments = const [];
   List<ImageAttachment> _images = const [];
   bool _preparing = false;
+  bool _enhancing = false;
 
   MentionQuery? _mention;
   List<String> _found = const [];
@@ -223,6 +232,41 @@ class _ComposerState extends ConsumerState<Composer> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
+  /// Replaces the draft with the enhanced prompt; the snackbar can undo it.
+  Future<void> _enhance() async {
+    final fn = widget.onEnhance;
+    final draft = _input.text;
+    if (fn == null || draft.trim().isEmpty || _enhancing) return;
+    setState(() => _enhancing = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final better = await fn(draft);
+      if (!mounted) return;
+      _input.value = TextEditingValue(
+        text: better,
+        selection: TextSelection.collapsed(offset: better.length),
+      );
+      messenger.showSnackBar(SnackBar(
+        content: const Text('Prompt enhanced. Review it, then send.'),
+        duration: const Duration(seconds: 6),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () => _input.value = TextEditingValue(
+            text: draft,
+            selection: TextSelection.collapsed(offset: draft.length),
+          ),
+        ),
+      ));
+    } on RpcError catch (e) {
+      final old = e.code == 'bad_request' && e.message.contains('unknown method');
+      messenger.showSnackBar(SnackBar(
+        content: Text(old ? 'Update JenderalCode Desktop to v0.1.12 or newer to enhance prompts.' : e.readable),
+      ));
+    } finally {
+      if (mounted) setState(() => _enhancing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -248,10 +292,23 @@ class _ComposerState extends ConsumerState<Composer> {
                 onPressed: widget.imagesAllowed && !_preparing ? _attachMenu : null,
                 icon: const Icon(Icons.add_photo_alternate_outlined),
               ),
+              ListenableBuilder(
+                listenable: _input,
+                builder: (_, _) => IconButton(
+                  tooltip: 'Enhance prompt',
+                  onPressed: widget.onEnhance != null && _input.text.trim().isNotEmpty && !_enhancing
+                      ? _enhance
+                      : null,
+                  icon: _enhancing
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.edit_note),
+                ),
+              ),
               Expanded(
                 child: TextField(
                   controller: _input,
                   focusNode: _focus,
+                  readOnly: _enhancing,
                   minLines: 1,
                   maxLines: 6,
                   textCapitalization: TextCapitalization.sentences,
