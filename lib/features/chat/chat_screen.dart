@@ -17,6 +17,7 @@ import 'chat_widgets.dart';
 import 'composer.dart';
 import 'composer_logic.dart';
 import 'policy.dart';
+import 'todos.dart';
 import '../help/help_content.dart';
 import '../help/help_screen.dart';
 
@@ -168,6 +169,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ]),
         ]),
         actions: [
+          TodosButton(chatKey: _key),
           if (session != null)
             ModeBadge(
               mode: session.policyMode,
